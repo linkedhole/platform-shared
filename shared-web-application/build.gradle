@@ -1,0 +1,7 @@
+// 웹어플리케이션 웹 공용 모듈
+description = 'Platform Shared Web Application (shared)'
+
+defaultTasks 'clean', 'build', 'uploadArchives'
+
+artifactId = 'shared-web-application'
+version = "1.0$config.subffix"

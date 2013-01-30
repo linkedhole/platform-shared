@@ -1,0 +1,4 @@
+// shared project
+include "shared-application"
+include "shared-web-application"
+include "shared-support"

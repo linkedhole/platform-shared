@@ -1,0 +1,7 @@
+// 웹어플리케이션 util, handler... 공용 모듈
+description = 'Platform Shared Support (shared)'
+
+defaultTasks 'clean', 'build', 'uploadArchives'
+
+artifactId = 'shared-support'
+version = "1.0$config.subffix"
