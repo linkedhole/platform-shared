@@ -24,6 +24,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'    
     apply plugin: 'eclipse-wtp'
+    apply plugin: 'idea'
     
     group = 'com.linkedhole.platform.shared'
     
