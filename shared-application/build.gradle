@@ -3,5 +3,9 @@ description = 'Platform Shared Application (shared)'
 
 defaultTasks 'clean', 'build', 'uploadArchives'
 
-artifactId = 'shared-application'
-version = "1.0"
+uploadArchives {
+    repositories.mavenDeployer {
+        pom.version = "1.0"
+        pom.artifactId = 'shared-application'
+    }
+}
