@@ -5,14 +5,11 @@ defaultTasks 'clean', 'build'
 loadConfiguration()
 
 def loadConfiguration() {
-    def environment = hasProperty('env') ? env : 'dev'
-    def verSubffix = hasProperty('release') ? '' : '-SNAPSHOT'
+    def environment = hasProperty('spring.profiles.active') ? get('spring.profiles.active') : 'dev'
     setProperty 'environment', environment
     println "####### Environment is set to [$environment] #######"   
-    println "####### VerSubffix is set to [$verSubffix]   #######"
     def configFile = file('environment.groovy')
-    def config = new ConfigSlurper(environment).parse(configFile.toURL())
-    config.subffix= verSubffix
+    def config = new ConfigSlurper(environment).parse(configFile.toURL())    
     setProperty 'config', config
 }
 
@@ -22,60 +19,13 @@ ext {
 
 subprojects {
     
+    defaultTasks 'clean', 'build', 'uploadSnapshotArchives'
+    
     apply plugin: 'java'
-    apply plugin: 'maven'
+    apply plugin: 'maven'    
     apply plugin: 'eclipse-wtp'
     
-    repositories {
-		mavenCentral()
-        maven { url 'http://repo.springsource.org/libs-milestone' }
-        maven { url 'http://repo.springsource.org/plugins-release' }
-        flatDir { dirs flatReposLocation }
-		// maven { url "$config.nexus.publicRepository" }
-    }
-    
-    // 저장소를 지정하고,
-    uploadArchives {
-	    /**
-        repositories.mavenDeployer {
-            configureAuth = {
-                  authentication(userName: "$config.nexus.userName", password: "$config.nexus.password")
-            }
-            snapshotRepository(url: "$config.nexus.snapshotRepository", configureAuth)
-            repository(url: "$config.nexus.repository", configureAuth)
-        }
-		**/
-		repositories {
-            flatDir { dirs flatReposLocation }
-       }
-    }
-  	
-  	group = 'com.linkedhole.platform.shared'
-    version = "1.0$config.subffix" 
-    
-    jar {
-        manifest {
-            attributes 'Implementation-Title': 'linkedhole-platform',
-                       'Implementation-Version': version,
-                       'Built-By': System.getProperty('user.name'),
-                       'Built-Date': new Date(),
-                       'Built-JDK': System.getProperty('java.version')
-        }
-    }
-        
-    sourceSets.main.classesDir = new File("./build/classes")
-    sourceSets.test.classesDir = new File("./build/testClasses")
-    
-    eclipse {
-        classpath {
-            defaultOutputDir = file("build/classes")
-            file {
-                whenMerged { classpath ->
-                    classpath.entries.findAll{ entry -> entry.kind == 'src' && entry.path.startsWith("src/test/") }*.output = "build/testClasses"
-                }
-            }
-        }
-    }
+    group = 'com.linkedhole.platform.infra'
     
     // JDK 7 compatibility
     sourceCompatibility=1.7
@@ -96,12 +46,65 @@ subprojects {
         springTestMVCVersion = "1.0.0.M1"
     }
     
+    repositories {
+        mavenCentral()
+        maven { url 'http://repo.springsource.org/libs-milestone' }
+        maven { url 'http://repo.springsource.org/plugins-release' }
+        flatDir { dirs flatReposLocation }
+        // maven { url "$config.nexus.publicRepository" }
+    }
+    
+    // 저장소를 지정하고,
+    uploadArchives {
+        /**
+        repositories.mavenDeployer {
+            configureAuth = {
+                  authentication(userName: "$config.nexus.userName", password: "$config.nexus.password")
+            }
+            snapshotRepository(url: "$config.nexus.snapshotRepository", configureAuth)
+            repository(url: "$config.nexus.repository", configureAuth)
+        }
+        **/
+        repositories {
+            flatDir { dirs flatReposLocation }
+       }
+    }
+    
+    uploadArchives << {
+        println "####### uploadArchivesProject name : [$project.name], version : [$project.version]  #######"
+    }
+    
+    task uploadSnapshotArchives(description: "Uploads all artifacts belonging to snapshot configuration..") {
+        dependsOn uploadArchives    
+    }
+        
+    sourceSets.main.classesDir = new File("./build/classes")
+    sourceSets.test.classesDir = new File("./build/testClasses")
+    
+    eclipse {
+        classpath {
+            defaultOutputDir = file("build/classes")
+            file {
+                whenMerged { classpath ->
+                    classpath.entries.findAll{ entry -> entry.kind == 'src' && entry.path.startsWith("src/test/") }*.output = "build/testClasses"
+                }
+            }
+        }
+    }
+    
     // 의존성에서 제외 모듈 등록
     configurations {
         all*.exclude group: 'commons-logging', module: 'commons-logging'
         all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
         all*.exclude group: 'log4j', module: 'log4j'
         all*.exclude group: 'javax.servlet', module: 'servlet-api', version: '2.+'
+        all {
+            resolutionStrategy {
+                failOnVersionConflict()                
+                cacheDynamicVersionsFor 10*60, 'seconds'
+                cacheChangingModulesFor 0, 'seconds'
+            }
+        }
     }
 
     // JAVA 컴파일시 인코딩 설정
@@ -203,5 +206,22 @@ subprojects {
                     "xmlunit:xmlunit:1.2@jar",
                     "com.jayway.jsonpath:json-path:0.8.1@jar",
                     "org.springframework:spring-test:$springVersion@jar"
+    }
+    
+    gradle.taskGraph.whenReady {taskGraph ->
+        if (taskGraph.hasTask(uploadSnapshotArchives)) {
+            version += '-SNAPSHOT'
+        } else {
+            version += ''
+        }
+        if (taskGraph.hasTask(jar)) { 
+            jar.manifest {
+                attributes 'Implementation-Title': 'platform-infra',
+                           'Implementation-Version': version,
+                           'Built-By': System.getProperty('user.name'),
+                           'Built-Date': new Date(),
+                           'Built-JDK': System.getProperty('java.version')
+            }
+        }
     }
 }

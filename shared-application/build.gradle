@@ -4,4 +4,4 @@ description = 'Platform Shared Application (shared)'
 defaultTasks 'clean', 'build', 'uploadArchives'
 
 artifactId = 'shared-application'
-version = "1.0$config.subffix"
+version = "1.0"
